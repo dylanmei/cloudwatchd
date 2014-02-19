@@ -1,0 +1,31 @@
+{
+  "name": "cloudwatchd",
+  "description": "A CloudWatch metric collection daemon",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dylan Meissner",
+    "email": "dylanmei@gmail.com",
+    "url": "http://github.com/dylanmei"
+  },
+  "repository" : {
+    "type": "git",
+    "url": "https://github.com/dylanmei/cloudwatchd"
+  },
+  "main": "cloudwatch.js",
+  "dependencies": {
+    "underscore": "1.4.x",
+    "aws-sdk": "2.0.x",
+    "bunyan": "0.22.1",
+    "bunyan-syslog": "0.2.2"
+  },
+  "optionalDependencies": {},
+  "scripts": {
+    "test": "make test"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "keywords": [
+    "aws", "amazon", "cloudwatch"
+  ]
+}

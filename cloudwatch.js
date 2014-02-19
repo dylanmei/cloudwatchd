@@ -1,9 +1,7 @@
 
-var AWS    = require('aws-sdk'),
-    bunyan = require('bunyan'),
-    syslog = require('bunyan-syslog'),
-    fs     = require('fs'),
-    _      = require('underscore')
+var AWS = require('aws-sdk'),
+    fs  = require('fs'),
+    _   = require('underscore')
 
 var timestamp = 0
 var config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
@@ -17,7 +15,6 @@ AWS.config.apiVersions = {
   cloudwatch: '2010-08-01',
 }
 var cloudwatch = new AWS.CloudWatch()
-
 var backends = _.map(config.backends, function(spec, i) {
   backend = require(spec)
   if (!backend.init(config)) {
@@ -71,17 +68,13 @@ function send_datapoint_to_backends(metric, dp) {
   var value = dp[metric.Statistic]
 
   _.each(backends, function(b) {
-    send_datapoint_to_backend(b, time, metric, value)
+    b.send(time, metric, value)
   })
 }
-
-function send_datapoint_to_backend(backend, time, metric, value) {
-  backend.send(time, metric, value)
-}
-
-run() || setInterval(run, config.interval * 1000)
 
 process.title = 'cloudwatchd'
 process.on('exit', function() {
   console.log('exiting')
 })
+
+run() || setInterval(run, config.interval * 1000)

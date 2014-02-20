@@ -3,7 +3,7 @@ var AWS = require('aws-sdk'),
     fs  = require('fs'),
     _   = require('underscore')
 
-var timestamp = 0
+var timestamp = 0, lag = 60
 var config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
   metrics:  [],
   backends: [],
@@ -25,7 +25,7 @@ var backends = _.map(config.backends, function(spec, i) {
 })
 
 function run() {
-  var now = new Date()
+  var now = new Date(new Date().getTime() - lag * 1000)
   var start = timestamp
     ? new Date(timestamp)
     : new Date(now.getTime() - (config.interval * 1000))

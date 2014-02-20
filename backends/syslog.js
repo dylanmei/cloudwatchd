@@ -7,23 +7,26 @@ var log
 
 exports.init = function(config) {
   config = _.defaults(config.syslog || {}, {
-    type:     'udp',
-    host:     '127.0.0.1',
-    port:     514,
+    type:     'sys',
     facility: 'local0',
   })
+
+  var streamOptions = {
+    type: config.type,
+    facility: syslog[config.facility],
+  }
+
+  if (config.type != 'sys') {
+    streamOptions.host = config.host
+    streamOptions.port = config.port
+  }
 
   log = bunyan.createLogger({
     name: 'cloudwatch',
     streams: [{
       level: 'info',
       type: 'raw',
-      stream: syslog.createBunyanStream({
-        type: config.type,
-        facility: syslog[config.facility],
-        host: config.host,
-        port: Number(config.port)
-      })
+      stream: syslog.createBunyanStream(streamOptions)
     }]
   })
 

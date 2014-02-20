@@ -22,7 +22,7 @@ exports.init = function(config) {
         type: config.type,
         facility: syslog[config.facility],
         host: config.host,
-        port: config.port
+        port: Number(config.port)
       })
     }]
   })

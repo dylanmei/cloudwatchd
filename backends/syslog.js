@@ -3,7 +3,7 @@ var SysLogger = require('ain2'),
     _         = require('underscore')
 
 var debug, dumpMessages
-var syslog, tags
+var syslog, vars
 var formats = {
   'message-only': function(message, severity) {
     return new Buffer(message)
@@ -16,16 +16,20 @@ exports.init = function(config) {
   config = _.defaults(config.syslog || {}, {
     type: 'udp',
     facility: 'user',
-    tags: {},
+    vars: {},
   })
 
-  tags = config.tags
+  var addr = addr_to_array(config.addr)
+  var host = config.host || addr[0]
+  var port = config.port || addr[1]
+
+  vars = config.vars
   syslog = new SysLogger({
     transport: type_to_transport(config.type),
     tag: 'cloudwatchd',
     facility: config.facility,
-    address: config.host,
-    port: config.port,
+    address: host,
+    port: port,
   })
 
   if (config.format) {
@@ -42,6 +46,11 @@ function type_to_transport(type) {
   return type == 'unix' ? 'unix_dgram' : 'UDP'
 }
 
+function addr_to_array(addr) {
+  var m = (addr || '').match(/([\w\.]+):([\d]+)/)
+  return m ? m.slice(1) : []
+}
+
 exports.send = function(time, metric, value) {
   var message = {
     time: time.toISOString(),
@@ -56,7 +65,7 @@ exports.send = function(time, metric, value) {
     message[d.Name] = d.Value
   })
 
-  _.each(tags, function(value, name) {
+  _.each(vars, function(value, name) {
     if (!message[name]) message[name] = value
   })
 

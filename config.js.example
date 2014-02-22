@@ -16,7 +16,7 @@
   syslog: {
     facility: 'local0',
     transport: 'unix',
-    tags: {
+    vars: {
       'Environment': 'test',
     },
   }

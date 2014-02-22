@@ -10,6 +10,11 @@ var config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
   interval: 60,
 })
 
+if (!config.region) {
+  console.error('[cloudwatchd] config is missing "region"')
+  process.exit(1)
+}
+
 AWS.config.update(config)
 AWS.config.apiVersions = {
   cloudwatch: '2010-08-01',

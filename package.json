@@ -15,8 +15,7 @@
   "dependencies": {
     "underscore": "1.4.x",
     "aws-sdk": "2.0.x",
-    "bunyan": "0.22.1",
-    "bunyan-syslog": "0.2.2"
+    "ain2": "1.3.x"
   },
   "engines": {
     "node": "*"

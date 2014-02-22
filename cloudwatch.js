@@ -18,7 +18,7 @@ var cloudwatch = new AWS.CloudWatch()
 var backends = _.map(config.backends, function(spec, i) {
   backend = require(spec)
   if (!backend.init(config)) {
-    console.log('[cloudwatch] failed to load backend', spec)
+    console.log('[cloudwatchd] failed to load backend', spec)
     process.exit(1)
   }
   return backend
@@ -41,23 +41,30 @@ function run_metric(metric, start, end) {
     Namespace: metric.Namespace,
     MetricName: metric.MetricName,
     StartTime: start.toISOString(),
-    EndTime: end.toISOString(),
+      EndTime: end.toISOString(),
     Statistics: [metric.Statistic],
     Dimensions: metric.Dimensions || [],
     Period: '60',
     Unit: metric.Unit
   }
 
-  console.log(params)
+  if (config.dumpMessages)
+    console.log(params)
 
   cloudwatch.getMetricStatistics(params, function(error, response) {
     if (error) {
-      return console.error("[cloudwatch] error:", error)
+      return console.error("[cloudwatchd] error:", error)
     }
 
-    console.log(response)
+    if (config.dumpMessages)
+      console.log(response)
 
     _.each(response.Datapoints, function(dp) {
+      if (config.debug) {
+        console.log('[cloudwatchd]', dp.Timestamp,
+          metric.Namespace, metric.MetricName, dp[metric.Statistic])
+      }
+
       send_datapoint_to_backends(metric, dp)
     })
   })
@@ -74,7 +81,8 @@ function send_datapoint_to_backends(metric, dp) {
 
 process.title = 'cloudwatchd'
 process.on('exit', function() {
-  console.log('exiting')
+  if (config.debug)
+    console.log('exiting')
 })
 
 run() || setInterval(run, config.interval * 1000)

@@ -1,41 +1,48 @@
 
-var bunyan = require('bunyan'),
-    syslog = require('bunyan-syslog'),
-    _      = require('underscore')
+var SysLogger = require('ain2'),
+    _         = require('underscore')
 
-var log 
+var debug, dumpMessages
+var syslog, tags
+var formats = {
+  'message-only': function(message, severity) {
+    return new Buffer(message)
+  }
+}
 
 exports.init = function(config) {
+  debug = config.debug
+  dumpMessages = config.dumpMessages
   config = _.defaults(config.syslog || {}, {
-    type:     'sys',
-    facility: 'local0',
+    type: 'udp',
+    facility: 'user',
+    tags: {},
   })
 
-  var streamOptions = {
-    type: config.type,
-    facility: syslog[config.facility],
-  }
-
-  if (config.type != 'sys') {
-    streamOptions.host = config.host
-    streamOptions.port = config.port
-  }
-
-  log = bunyan.createLogger({
-    name: 'cloudwatch',
-    streams: [{
-      level: 'info',
-      type: 'raw',
-      stream: syslog.createBunyanStream(streamOptions)
-    }]
+  tags = config.tags
+  syslog = new SysLogger({
+    transport: type_to_transport(config.type),
+    tag: 'cloudwatchd',
+    facility: config.facility,
+    address: config.host,
+    port: config.port,
   })
 
-  return log ? 1 : 0
+  if (config.format) {
+    var formatter = formats[config.format]
+    if (formatter) {
+      syslog.setMessageComposer(formatter)
+    }
+  }
+
+  return syslog ? 1 : 0
+}
+
+function type_to_transport(type) {
+  return type == 'unix' ? 'unix_dgram' : 'UDP'
 }
 
 exports.send = function(time, metric, value) {
-  console.log('[syslog]', time, metric.MetricName, value)
-
   var message = {
     time: time.toISOString(),
     Namespace:  metric.Namespace,
@@ -49,5 +56,12 @@ exports.send = function(time, metric, value) {
     message[d.Name] = d.Value
   })
 
-  log.info(message)
+  _.each(tags, function(value, name) {
+    if (!message[name]) message[name] = value
+  })
+
+  if (dumpMessages)
+    console.log(message)
+
+  syslog.log(JSON.stringify(message))
 }

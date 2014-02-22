@@ -1,5 +1,7 @@
 {
-  region: 'us-west-2',
+  debug: true,
+  dumpMessages: true,
+  region: process.env.AWS_DEFAULT_REGION,
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   interval: 60,
@@ -9,9 +11,13 @@
     "MetricName": "ConsumedReadCapacityUnits",
     "Statistic": "Sum",
     "Unit": "Count",
-    "Dimensions": [{ "Name": "TableName", "Value": "mytable" }]
+    "Dimensions": [{ "Name": "TableName", "Value": "mytable" }],
   }],
   syslog: {
     facility: 'local0',
+    transport: 'unix',
+    tags: {
+      'Environment': 'test',
+    },
   }
 }

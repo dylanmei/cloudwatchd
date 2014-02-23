@@ -1,10 +1,10 @@
 
-var AWS = require('aws-sdk'),
-    fs  = require('fs'),
-    _   = require('underscore')
+var AWS      = require('aws-sdk'),
+    Timespan = require('./lib/timespan'),
+    fs       = require('fs'),
+    _        = require('underscore');
 
-var interval, timestamp = 0
-var config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
+var ts, config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
   metrics:  [],
   backends: [],
   period: 60,
@@ -31,12 +31,16 @@ var backends = _.map(config.backends, function(spec, i) {
 })
 
 function run() {
-  var now = new Date()
-  var start = new Date(now.getTime() - interval*2)
-  var then = new Date(now.getTime() - interval)
+  var start = ts.start()
+  var end = ts.end(start)
+
+  if (config.debug) {
+    console.log('[cloudwatchd] pulling for time period:',
+      start.toISOString(), '-', end.toISOString())
+  }
 
   _.each(config.metrics, function(m) {
-    run_metric(m, start, then)
+    run_metric(m, start, end)
   })
 }
 
@@ -48,7 +52,7 @@ function run_metric(metric, start, end) {
     EndTime:    end.toISOString(),
     Statistics: [metric.Statistic],
     Dimensions: metric.Dimensions || [],
-    Period:     interval / 1000,
+    Period:     ts.period,
     Unit:       metric.Unit,
   }
 
@@ -83,22 +87,13 @@ function send_datapoint_to_backends(metric, dp) {
   })
 }
 
-function period_to_interval(p) {
-  var i = 60
-  if (p > 60)  i = 300
-  if (p > 300) i = 600
-  if (p > 600) i = 900
-  if (p > 900) i = 3600
-  return i * 1000
-}
-
 process.title = 'cloudwatchd'
 process.on('exit', function() {
   if (config.debug)
     console.log('[cloudwatchd] exiting')
 })
 
-interval = period_to_interval(config.period)
-console.log('[cloudwatchd] running at', (interval / 1000), 'second intervals')
+ts = new Timespan(config.period)
+console.log('[cloudwatchd] running at', ts.period, 'second intervals')
 
-run() || setInterval(run, interval)
+run() || setInterval(run, ts.ticks)

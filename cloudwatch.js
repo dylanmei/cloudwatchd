@@ -3,11 +3,11 @@ var AWS = require('aws-sdk'),
     fs  = require('fs'),
     _   = require('underscore')
 
-var timestamp = 0, lag = 60
+var interval, timestamp = 0
 var config = _.defaults(eval('c='+fs.readFileSync(process.argv[2])), {
   metrics:  [],
   backends: [],
-  interval: 60,
+  period: 60,
 })
 
 if (!config.region) {
@@ -23,18 +23,16 @@ var cloudwatch = new AWS.CloudWatch()
 var backends = _.map(config.backends, function(spec, i) {
   backend = require(spec)
   if (!backend.init(config)) {
-    console.log('[cloudwatchd] failed to load backend', spec)
+    console.error('[cloudwatchd] failed to load backend', spec)
     process.exit(1)
   }
+  console.log('[cloudwatchd] loaded backend', spec)
   return backend
 })
 
 function run() {
-  var now = new Date(new Date().getTime() - lag * 1000)
-  var start = timestamp
-    ? new Date(timestamp)
-    : new Date(now.getTime() - (config.interval * 1000))
-  timestamp = now.getTime()
+  var now = new Date()
+  var start = new Date(now.getTime() - interval*2)
 
   _.each(config.metrics, function(m) {
     run_metric(m, start, now)
@@ -43,14 +41,14 @@ function run() {
 
 function run_metric(metric, start, end) {
   var params = {
-    Namespace: metric.Namespace,
+    Namespace:  metric.Namespace,
     MetricName: metric.MetricName,
-    StartTime: start.toISOString(),
-      EndTime: end.toISOString(),
+    StartTime:  start.toISOString(),
+    EndTime:    end.toISOString(),
     Statistics: [metric.Statistic],
     Dimensions: metric.Dimensions || [],
-    Period: '60',
-    Unit: metric.Unit
+    Period:     interval / 1000,
+    Unit:       metric.Unit,
   }
 
   if (config.dumpMessages)
@@ -84,10 +82,22 @@ function send_datapoint_to_backends(metric, dp) {
   })
 }
 
+function period_to_interval(p) {
+  var i = 60
+  if (p > 60)  i = 300
+  if (p > 300) i = 600
+  if (p > 600) i = 900
+  if (p > 900) i = 3600
+  return i * 1000
+}
+
 process.title = 'cloudwatchd'
 process.on('exit', function() {
   if (config.debug)
-    console.log('exiting')
+    console.log('[cloudwatchd] exiting')
 })
 
-run() || setInterval(run, config.interval * 1000)
+interval = period_to_interval(config.period)
+console.log('[cloudwatchd] running at', (interval / 1000), 'second intervals')
+
+run() || setInterval(run, interval)

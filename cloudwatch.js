@@ -33,9 +33,10 @@ var backends = _.map(config.backends, function(spec, i) {
 function run() {
   var now = new Date()
   var start = new Date(now.getTime() - interval*2)
+  var then = new Date(now.getTime() - interval)
 
   _.each(config.metrics, function(m) {
-    run_metric(m, start, now)
+    run_metric(m, start, then)
   })
 }
 

@@ -2,6 +2,8 @@
 
 A CloudWatch metric collection daemon.
 
+[![wercker status](https://app.wercker.com/status/5ead0be72bd499019f0742d7d72ace66/m/ "wercker status")](https://app.wercker.com/project/bykey/5ead0be72bd499019f0742d7d72ace66)
+
 ## Configuration
 
 Add the following basic configuration information to the StatsD configuration file.

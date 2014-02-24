@@ -23,8 +23,7 @@ var cloudwatch = new AWS.CloudWatch()
 var backends = _.map(config.backends, function(spec, i) {
   backend = require(spec)
   if (!backend.init(config)) {
-    console.error('[cloudwatchd] failed to load backend', spec)
-    process.exit(1)
+    return handle_fatal_error('failed to load backend ' + spec)
   }
   console.log('[cloudwatchd] loaded backend', spec)
   return backend
@@ -61,7 +60,7 @@ function run_metric(metric, start, end) {
 
   cloudwatch.getMetricStatistics(params, function(error, response) {
     if (error) {
-      return console.error("[cloudwatchd] error:", error)
+      return handle_cloudwatch_error(error)
     }
 
     if (config.dumpMessages)
@@ -87,10 +86,33 @@ function send_datapoint_to_backends(metric, dp) {
   })
 }
 
+function handle_cloudwatch_error(err) {
+  if (config.dumpMessages)
+    console.log(err)
+
+  if (err.originalError) {
+    err = err.originalError
+  }
+
+  if (err.code == 'CredentialsError') {
+    return handle_fatal_error('missing aws credentials')
+  }
+  if (err.code == 'InvalidClientTokenId') {
+    return handle_fatal_error('invalid aws credentials')
+  }
+
+  return console.error('[cloudwatchd] error:', err.message)
+}
+
+function handle_fatal_error(msg) {
+  console.error('[cloudwatchd] error:', msg)
+  return process.exit(1)
+}
+
 process.title = 'cloudwatchd'
 process.on('exit', function() {
   if (config.debug)
-    console.log('[cloudwatchd] exiting')
+    console.log('[cloudwatchd] exiting!')
 })
 
 ts = new Timespan(config.period)

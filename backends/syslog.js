@@ -22,6 +22,14 @@ exports.init = function(config) {
   var addr = addr_to_array(config.addr)
   var host = config.host || addr[0]
   var port = config.port || addr[1]
+  var transport = type_to_transport(config.type)
+
+  if (transport == 'UDP') {
+    if (!host || !port) {
+      console.log('[cloudwatchd] no host:port defined for udp transport')
+      return 0
+    }
+  }
 
   vars = config.vars
   syslog = new SysLogger({

@@ -1,7 +1,7 @@
 {
   "name": "cloudwatchd",
   "description": "A CloudWatch metric collection daemon",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "author": {
     "name": "Dylan Meissner",
     "email": "dylanmei@gmail.com",
@@ -15,7 +15,8 @@
   "dependencies": {
     "underscore": "1.4.x",
     "aws-sdk": "2.0.x",
-    "ain2": "1.3.x"
+    "ain2": "1.3.x",
+    "strftime": "0.8.x"
   },
   "devDependencies": {
     "chai": "*",

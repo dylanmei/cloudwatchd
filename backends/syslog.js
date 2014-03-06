@@ -1,14 +1,11 @@
 
 var SysLogger = require('ain2'),
+    strftime  = require('strftime'),
     _         = require('underscore')
 
 var debug, dumpMessages
 var syslog, vars
-var formats = {
-  'message-only': function(message, severity) {
-    return new Buffer(message)
-  }
-}
+var messageFormat, timeFormat
 
 exports.init = function(config) {
   debug = config.debug
@@ -39,13 +36,12 @@ exports.init = function(config) {
     address: host,
     port: port,
   })
+  messageFormat = config.messageFormat || 'json'
+  timeFormat = config.timeFormat || '%Y-%m-%dT%H:%M:%S.%L%z'
 
-  if (config.format) {
-    var formatter = formats[config.format]
-    if (formatter) {
-      syslog.setMessageComposer(formatter)
-    }
-  }
+  syslog.setMessageComposer(function(message, severity) {
+    return Buffer(message)
+  })
 
   return syslog ? 1 : 0
 }
@@ -59,9 +55,17 @@ function addr_to_array(addr) {
   return m ? m.slice(1) : []
 }
 
+function kvp_formatter(obj) {
+  var pairs = _.map(_.pairs(obj), function(pair) {
+    return pair.join('=')
+  })
+
+  return pairs.join(' ')
+}
+
 exports.send = function(time, metric, value) {
   var message = {
-    time: time.toISOString(),
+    time:       strftime(timeFormat, time),
     Namespace:  metric.Namespace,
     MetricName: metric.MetricName,
     Unit:       metric.Unit,
@@ -77,8 +81,17 @@ exports.send = function(time, metric, value) {
     if (!message[name]) message[name] = value
   })
 
+  var header =  '[' + message.time + ']'
+  if (messageFormat == 'json') {
+    message = header + ' ' + JSON.stringify(message)
+  }
+  else if (messageFormat == 'kvp') {
+    var map = _.omit(message, 'time')
+    message = header + ' ' + kvp_formatter(map)
+  }
+
   if (dumpMessages)
     console.log(message)
 
-  syslog.log(JSON.stringify(message))
+  syslog.log(message)
 }
